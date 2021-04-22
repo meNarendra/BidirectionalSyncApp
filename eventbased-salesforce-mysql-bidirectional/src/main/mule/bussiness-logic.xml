@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<flow name="DatabaseToSalesforce" doc:id="7c358991-c5ad-4982-8c3f-25719874faa8">
+		<batch:job jobName="bussiness-logicBatch_Job1" doc:id="dcb6e0d1-a911-4c08-be16-10aa29c4b286">
+			<batch:process-records>
+				<batch:step name="Batch_Step1" doc:id="c75c5835-ff99-4b3d-932c-1050b1d35b20">
+					<salesforce:query doc:name="Query" doc:id="06a10dd0-5ced-4f55-b871-97295c7b6921" config-ref="Salesforce_Config1" target="IdDateInSalesforce">
+						<salesforce:salesforce-query><![CDATA[SELECT Id, LastModifiedDate FROM Account WHERE Name = ':name']]></salesforce:salesforce-query>
+						<salesforce:parameters><![CDATA[#[output applicaton/java
+---
+{
+	"name" : payload.Name
+}]]]></salesforce:parameters>
+					</salesforce:query>
+					<ee:transform doc:name="Transform Message" doc:id="045ca2f4-fd8d-4fb9-a32b-f84c2099b167">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+payload ++ {
+	(Id: vars.IdDateInSalesforce.Id) if vars.IdDateInSalesforce.Id != null, 
+	(LastModifiedDateSFDC: vars.IdDateInSalesforce.LastModifiedDate) if vars.IdDateInSalesforce.LastModifiedDate != null
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					<remove-variable doc:name="Remove Variable" doc:id="3da5c466-15b9-4676-ad51-2b6f85d82326" variableName="IdDateInSalesforce" />
+				</batch:step>
+				<batch:step name="Batch_Step2" doc:id="4b2fe725-e30c-4f71-a1a9-b66c5e32f4df">
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="06402ab8-2999-4974-85ec-5c91e49ccb2c" size="2">
+						<ee:transform doc:name="Transform Message" doc:id="422b5d17-107f-4c86-b404-db1fbcb53a9e">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+payload map ($ - 'LastModifiedDate'
+			   - 'LastModifiedDateSFDC')]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+						<salesforce:upsert doc:name="Upsert" doc:id="cb1b0cc1-ad88-4e80-b957-ab93b2309d8b" config-ref="Salesforce_Config1" objectType="Account" externalIdFieldName="Id" />
+					</batch:aggregator>
+				</batch:step>
+			</batch:process-records>
+		</batch:job>
+		<ee:transform doc:name="Transform Message" doc:id="8d5ba4d0-1517-49c8-9322-40f26321d0f6">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Records inserted from Mysql to Salesforce"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+	</flow>
+	<flow name="SalesforceToDatabase" doc:id="fedc3d24-b994-4538-8dbd-6b2531f9f5c6" >
+		<batch:job jobName="bussiness-logicBatch_Job2" doc:id="83494d90-0c39-4854-9b57-d8244d68951e" >
+			<batch:process-records>
+				<batch:step name="Batch_Step3" doc:id="9a46362b-36ba-4ded-b2ff-560bdf45ee59" >
+					<db:select doc:name="Select" doc:id="2013a18a-c5db-4887-809f-1e46c55899c3" config-ref="Database_Config1" target="IdDateInDB" transactionalAction="NOT_SUPPORTED">
+						<db:sql ><![CDATA[SELECT account_id, lastmodified FROM account WHERE account_name = :name]]></db:sql>
+						<db:input-parameters ><![CDATA[#[{
+	'name':payload.Name
+}]]]></db:input-parameters>
+					</db:select>
+					<ee:transform doc:name="Transform Message" doc:id="ec2449c9-9536-4277-bab7-6c6bceb4d49d" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload ++ {
+	IdDB: if(sizeOf(vars.IdDateInDB) > 0) vars.IdDateInDB[0].account_id else null, 
+	LastModifiedDateDB: if(sizeOf(vars.IdDateInDB) > 0) vars.IdDateInDB[0].lastmodified else null
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<remove-variable doc:name="Remove Variable" doc:id="95021c97-85b4-48f9-b0e5-db98adc504bf" variableName="IdDateInDB"/>
+				</batch:step>
+				<batch:step name="Batch_Step4" doc:id="5cf79fbc-ab4a-448e-87f5-9c4f00f26d47" >
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="2772266f-f82f-4d06-a9c8-d89d25405a2c" size="2">
+						<ee:transform doc:name="Transform Message" doc:id="0b47e1b3-7160-467a-833d-08b75c209759">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+payload map ($ - 'LastModifiedDate'
+			   - 'LastModifiedDateDB'
+			   - 'IdDB')]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+						<db:bulk-insert doc:name="Bulk insert" doc:id="d88ad32b-13b3-4019-9204-69c957e720e8" config-ref="Database_Config1">
+						<db:sql><![CDATA[INSERT INTO account (account_id,account_name,account_price,lastmodified,LastModifiedById) VALUES (:AccountNumber,:Name,:AnnualRevenue,CURRENT_TIMESTAMP(),CURRENT_USER())]]></db:sql>
+					</db:bulk-insert>
+					</batch:aggregator>
+				</batch:step>
+				<batch:step name="Batch_Step5" doc:id="c5334cc2-7d57-4ac7-8562-3ed91623055e" acceptExpression="payload.IdDB != null  and (payload.LastModifiedDateDB &lt; payload.LastModifiedDate)" >
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="88d13601-9298-49ed-883e-173f125b3046" size="5" >
+						<ee:transform doc:name="Transform Message" doc:id="e6bf071d-9635-41f2-bba0-5d3d24a9800e" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload map ($ - 'LastModifiedDate'
+			   - 'LastModifiedDateDB')
++ Id: vars.IdDB]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<db:bulk-update doc:name="Bulk update" doc:id="cd5435e7-cbf7-4bd2-8aa0-341a467ba879" config-ref="Database_Config1" >
+							<db:sql ><![CDATA[UPDATE account SET
+account_id = :AccountNumber, 
+account_name = :Name,
+account_price = :AnnualRevenue,
+lastmodified = CURRENT_TIMESTAMP(),
+LastModifiedById = CURRENT_USER()
+WHERE account_id = vars.IdDB]]></db:sql>
+						</db:bulk-update>
+					</batch:aggregator>
+				</batch:step>
+			</batch:process-records>
+		</batch:job>
+		<ee:transform doc:name="Transform Message" doc:id="d04c22d3-032b-480a-a4c6-89f08fbfa294">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Records inserted from Salesforce to Mysql"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+	</flow>
+</mule>

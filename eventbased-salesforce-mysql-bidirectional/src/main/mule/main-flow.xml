@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="a24ef54a-bded-4f07-a4f3-a8437ca16f74" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="4e5f9f7a-76e5-4a7d-8ae1-de9573da4b00" persistent="false" />
+	
+	<flow name="sfdc-db-account-bidirectionalFlow" doc:id="b001c88e-4b27-441d-8e6a-73440857e763" >
+		<choice doc:name="Choice" doc:id="9e3d8e47-61e3-46b4-a9f6-438d2e2a9413" >
+			<when expression='#[attributes.uriParams.process == "mysqlToSalesforce"]' >
+				<flow-ref doc:name="Flow Reference" doc:id="27099bab-b0fd-4800-88ed-747b3ad517ff" name="queryDatabaseFlow"/>
+				<ee:transform doc:name="Transform Message" doc:id="c511acef-dd64-4937-bf36-372d73dd41c7">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+payload map{
+	Name:$.account_name,
+	AccountNumber:$.account_id,
+	AnnualRevenue:$.account_price
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<flow-ref doc:name="Flow Reference" doc:id="78b70775-0abc-442f-94df-8e5006225e59" name="DatabaseToSalesforce"/>
+			</when>
+			<when expression='#[attributes.uriParams.process == "salesforceToMysql"]'>
+				<flow-ref doc:name="Flow Reference" doc:id="f2e6deda-d1b5-476b-a9ed-eacdcd51f03e" name="querySalesforceFlow"/>
+				<ee:transform doc:name="Transform Message" doc:id="2f7168bf-af10-43ca-ad8c-72320b3b2431">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map{
+	Name:$.Name,
+	AccountNumber:$.AccountNumber,
+	AnnualRevenue:$.AnnualRevenue,
+	LastModifiedDate:$.LastModifiedDate
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<flow-ref doc:name="Flow Reference" doc:id="f66b048b-a9f9-410c-b376-95f5fc37d40f" name="SalesforceToDatabase" />
+			</when>
+			<otherwise >
+				<raise-error doc:name="Raise error" doc:id="286b8fad-068f-4d95-96e2-af74f00d8e12" type="PROCESS:INVALIDPROCESS" description="None of the either process is called"/>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="queryDatabaseFlow" doc:id="d9f05bda-5149-4412-a528-349da391b4b0" >
+		<os:retrieve doc:name="Retrieve" doc:id="040ea148-c67b-40c4-8d14-24fed66ba193" key="lastreaddb" target="lastreaddb" objectStore="Object_store">
+					<os:default-value><![CDATA[2020-12-10T19:50:58.000Z]]></os:default-value>
+				</os:retrieve>
+		<logger level="INFO" doc:name="Logger" doc:id="6e69ebc2-a691-46c5-9068-402d8cd42bd9" message="#[vars.lastreaddb]" />
+		<db:select doc:name="Select" doc:id="893539d7-6db8-4f95-99f1-30ba2e191107" config-ref="Database_Config1">
+					<db:sql><![CDATA[select account_id,account_name,account_price,lastmodified from account WHERE lastmodified>:my]]></db:sql>
+					<db:input-parameters><![CDATA[#[{
+	"my": vars.lastreaddb
+}]]]></db:input-parameters>
+				</db:select>
+		<os:store doc:name="Store" doc:id="90259519-a8d6-4f1f-8988-23faee61be95" key="lastreaddb" failOnNullValue="false" objectStore="Object_store">
+					<os:value><![CDATA[#[max(payload.lastmodified)]]]></os:value>
+				</os:store>
+	</flow>
+	<flow name="querySalesforceFlow" doc:id="8354cba9-fbb3-4aee-9016-28902e6a75d9" >
+		<os:retrieve doc:name="Retrieve" doc:id="50b3b9e3-1021-4a8c-9e92-32276743253f" key="lastreadsales" target="lastreadsales" objectStore="Object_store">
+					<os:default-value><![CDATA[2021-04-14T14:42:24.000Z]]></os:default-value>
+				</os:retrieve>
+		<logger level="INFO" doc:name="Logger" doc:id="026b3312-c335-436b-ba5b-5915a6de7775" message="#[vars.lastreadsales]" />
+		<salesforce:query doc:name="Query" doc:id="b5d38766-cdcb-493f-9ee4-2f7b8831e4a8" config-ref="Salesforce_Config1">
+					<salesforce:salesforce-query><![CDATA[SELECT AccountNumber,AnnualRevenue,Name,LastModifiedDate FROM Account WHERE LastModifiedDate >:my]]></salesforce:salesforce-query>
+					<salesforce:parameters><![CDATA[#[output application/java
+---
+{
+	my : vars.lastreadsales
+}]]]></salesforce:parameters>
+				</salesforce:query>
+		<os:store doc:name="Store" doc:id="43796e24-2a28-412a-967b-bec00210786a" key="lastreadsales" failOnNullValue="false" objectStore="Object_store">
+					<os:value><![CDATA[#[max(payload.LastModifiedDate)]]]></os:value>
+				</os:store>
+	</flow>
+</mule>

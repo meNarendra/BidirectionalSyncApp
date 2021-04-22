@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd">
+	<munit:config name="main-flow-test-suite.xml" />
+	<munit:test name="mysql-salesforce-bidirectional-sync-test-suite-get:\bidirectional\(process" doc:id="db741d4a-729b-4ef8-be90-b571f4645d8b" description="Test">
+		<munit:execution>
+			<munit:set-event doc:name="mysqlToSalesforce" doc:id="0c95ebd4-c5a2-46cb-8a75-fc2c3e0b4927">
+				<munit:attributes value="#[{uriParams:{process:'mysqlToSalesforce'}}]" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to get:\bidirectional\(process)" doc:id="bc63e83c-ccd7-410a-934a-f2d08530f655" name="get:\bidirectional\(process):mysql-salesforce-bidirectional-sync-config" />
+			<flow-ref doc:name="Flow Reference" doc:id="98d8128a-41a3-44aa-84e5-6c21d07bf293" name="sfdc-db-account-bidirectionalFlow"/>
+			<flow-ref doc:name="Flow Reference" doc:id="5ff06222-e7bc-434e-8119-e3cea404c3e3" name="DatabaseToSalesforce" />
+
+			</munit:execution>
+		<munit:validation>
+			<munit-tools:verify-call doc:name="Verify call" doc:id="e8d6935f-997a-4b99-a3a9-c880bdef10d1" processor="ee:transform" atLeast="1">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="88fb6250-98bd-4a3f-af6b-d1711414ca94" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+
+		</munit:validation>
+		
+</munit:test>
+	<munit:test name="Copy_of_mysql-salesforce-bidirectional-sync-test-suite-get:\bidirectional\" doc:id="198909a7-69df-4cd9-b498-0c2d51161da3" description="Test">
+			<munit:execution>
+				<munit:set-event doc:name="salesforceToMysql" doc:id="f5cdecdc-e722-40ad-bb53-054c6c2c42a5" >
+				<munit:attributes value="#[{uriParams:{process:'salesforceToMysql'}}]" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to get:\bidirectional\(process):" doc:id="13740f94-c17c-4837-a7e9-412577436a03" name="get:\bidirectional\(process):mysql-salesforce-bidirectional-sync-config" />
+			<flow-ref doc:name="Flow Reference" doc:id="ebf274db-52a1-4c92-8876-aa1b30bb9200" name="sfdc-db-account-bidirectionalFlow" />
+			<flow-ref doc:name="Flow Reference" doc:id="f46a436a-5d05-4180-924d-bb997ec592b8" name="SalesforceToDatabase" />
+			</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="14289461-b1d2-4714-99fc-c1808ced674b" processor="flow-ref" atLeast="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="f66b048b-a9f9-410c-b376-95f5fc37d40f" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+		</munit:test>
+        <munit:test name="main-flow-test-suiteTest" doc:id="7300ded7-5085-4001-bd66-0214da87bd46" >
+		<munit:execution >
+			<munit:set-event doc:name="Undefined Process" doc:id="58c015ed-8634-4430-9048-700b324700b5" >
+				<munit:attributes value="#[{uriParams:{process:'NoneOfTheProcess'}}]" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to get:\bidirectional\(process):" doc:id="b6681cf6-e338-4d7e-9923-eedf8d679e7c" name="get:\bidirectional\(process):mysql-salesforce-bidirectional-sync-config" />
+			<flow-ref doc:name="Flow Reference" doc:id="dbce5b8a-a4c4-450d-a035-bf7c50ee5d4a" name="sfdc-db-account-bidirectionalFlow" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="806d5370-524e-48d6-a533-ad7e561491e6" processor="raise-error" atLeast="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="PROCESS:INVALIDPROCESS" attributeName="type" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="main-flow-test-suite-queryDatabaseFlowTest" doc:id="edff94c6-e6dd-487d-9767-1d1d93cb50f1" description="Test">
+		<munit:execution>
+			<ee:transform doc:name="Transform Message" doc:id="875aede2-94f4-4814-be66-a1915db7e400">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	account_name: "Mysql_Munit_Test1",
+	account_id: "1001",
+	account_price: "10000"
+},
+{
+	account_name: "Mysql_Munit_Test2",
+	account_id: "1002",
+	account_price: "20000"
+}
+]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			<db:bulk-insert doc:name="Bulk insert" doc:id="11e348eb-eb05-46f2-a170-715e6a6dbed0" config-ref="Database_Config1">
+			<db:sql><![CDATA[INSERT INTO account (account_id,account_name,account_price,lastmodified,LastModifiedById) VALUES (:account_id,:account_name,:account_price,CURRENT_TIMESTAMP(),CURRENT_USER())]]></db:sql>
+		</db:bulk-insert>
+			<flow-ref doc:name="Flow-ref to queryDatabaseFlow" doc:id="f80668b3-3f45-4dd2-a441-fdb8c878473b" name="queryDatabaseFlow" />
+			<munit-tools:assert-that doc:name="Assert that" doc:id="16bd5f2a-085b-4525-b96e-6ee7d670ed59" is='#[MunitTools::equalTo("123")]' expression="#[payload[0].account_id]" />
+			<db:delete doc:name="Delete" doc:id="cbe58409-d349-42c4-9399-d057152e86e3" config-ref="Database_Config1">
+				<db:sql><![CDATA[delete from account;]]></db:sql>
+			</db:delete>
+		
+</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="83fea676-ba5f-476b-b7ed-bf4405825190" processor="os:store" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="90259519-a8d6-4f1f-8988-23faee61be95" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="main-flow-test-suite-querySalesforceFlowTest" doc:id="3bce8878-bff3-46cb-b4c0-31ab6a9a25ad" description="Test">
+		<munit:execution>
+			<ee:transform doc:name="Transform Message" doc:id="4d4a8070-fa6b-40d1-b0e7-0ed55d8a31da">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	Name: "Salesforce_Munit_Test1",
+	AccountNumber: "2001",
+	AnnualRevenue: "30000"
+}
+,
+{
+	Name: "Salesforce_Munit_Test2",
+	AccountNumber: "2002",
+	AnnualRevenue: "40000"
+}
+]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			<salesforce:create type="Account" doc:name="Create" doc:id="1c9df260-d3cb-4d42-998c-ecf98600a208" config-ref="Salesforce_Config1" />
+			<flow-ref doc:name="Flow-ref to querySalesforceFlow" doc:id="a8075a21-476c-4743-996b-0b68b126b087" name="querySalesforceFlow" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:verify-call doc:name="Verify call" doc:id="55d22640-ab5f-4da3-8d74-db5f7695114b" processor="os:store" times="1">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="43796e24-2a28-412a-967b-bec00210786a" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

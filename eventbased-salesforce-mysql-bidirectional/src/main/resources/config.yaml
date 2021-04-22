@@ -1,0 +1,11 @@
+sfdc:
+  username: "narendra1998@gmail.com"
+  password: "Awesome@me16"
+  securityToken: "e2fI15PBQxYyroa61OBinSbj"
+  
+db:
+  host: "localhost"
+  port: "3305"
+  user: "root"
+  password: "root"
+  database: "cgmulesoft"
