@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd">
+	<munit:config name="main-flow-test-suite.xml" />
+	<munit:test name="MYSQL-Salesforce-Test" doc:id="6b9f9ec0-48a2-4463-94c0-1e5931a72467" description="Test">
+		<munit:execution>
+			<munit:set-event doc:name="Set Event" doc:id="675fdc48-5435-48e7-892d-1ec28bc8a47d" >
+				<munit:variables >
+					<munit:variable key="syncState" value='"MYSQL-Salesforce"' />
+				</munit:variables>
+			</munit:set-event>
+			<flow-ref doc:name="Flow Reference" doc:id="670fc44c-9e8e-46c0-9756-0d252e36bc09" name="main-flow" />
+			<flow-ref doc:name="Flow Reference" doc:id="c5e9c659-c317-4235-82df-1a2a54e0f6c6" name="MYSQL"/>
+			<flow-ref doc:name="Flow Reference" doc:id="95eaee5d-f1de-4c4b-bce9-c61e9df0b251" name="MYSQL-Salesforce" />
+
+			</munit:execution>
+		<munit:validation>
+			<munit-tools:verify-call doc:name="Verify call" doc:id="55edfcdb-ee6f-4527-b2e4-bda62f7f37f5" processor="os:store" atLeast="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="syncState" attributeName="key" />
+				</munit-tools:with-attributes>
+
+			</munit-tools:verify-call>
+
+		</munit:validation>
+		
+</munit:test>
+	<munit:test name="Salesforce-MYSQL-Test" doc:id="9eeced24-00f0-488b-bbe6-a46ba2ea113c" description="Test">
+			<munit:execution>
+			<munit:set-event doc:name="Set Event" doc:id="3697c7f3-08c5-40cc-b7db-a5d96a2951e8" >
+				<munit:variables >
+					<munit:variable key="syncState" value='"Salesforce-MYSQL"' />
+				</munit:variables>
+			</munit:set-event>
+			<flow-ref doc:name="Flow Reference" doc:id="d6bb8c25-db0a-4fbf-a746-e2b32ef208b0" name="main-flow" />
+			<flow-ref doc:name="Flow Reference" doc:id="8e2b2751-34a7-4e9c-802e-1181573473e2" name="Salesforce" />
+			<flow-ref doc:name="Flow Reference" doc:id="c97f6f6a-e821-4071-ac32-3a3b8a7daaa8" name="Salesforce-MYSQL"/>
+			</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="48756fc8-9605-4b18-ac5d-431eb75cf791" processor="os:store" atLeast="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="syncState" attributeName="key" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+		</munit:test>
+	<munit:test name="test-suiteTest" doc:id="695ff21b-c4e7-47c5-bbbc-018fe3bb4e67" >
+		<munit:execution >
+			<munit:set-event doc:name="Set Event for Invalid Process" doc:id="09e07dea-6952-4dc0-a95b-e99bb35768af" >
+				<munit:variables >
+					<munit:variable key="syncState" value='"AnyOtherProcess"' />
+				</munit:variables>
+			</munit:set-event>
+			<flow-ref doc:name="Flow Reference" doc:id="d4284e73-2d7a-4b43-845d-a1d5f321a181" name="main-flow" />
+			<flow-ref doc:name="Flow Reference" doc:id="50599f59-7dc3-422a-9bd2-379ccda85d4a" name="Salesforce" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="55cf778c-73b5-4650-8aaf-9aa8bd004b95" processor="raise-error" atLeast="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="PROCESS:INVALIDPROCESS" attributeName="type" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="main-flow-test-suite-queryDatabaseFlowTest" doc:id="933694a3-e673-452d-ba07-7f02e7c5ffb4" description="Test">
+		<munit:execution>
+			<ee:transform doc:name="Transform Message" doc:id="36e6ffff-0414-4233-a666-aa4c41182b31">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	account_name: "Mysql_Munit_test1",
+	account_id: 1001,
+	account_price: 10000
+},
+{
+	account_name: "Mysql_Munit_test2",
+	account_id: 1002,
+	account_price: 20000
+}
+]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			<db:bulk-insert doc:name="Bulk insert" doc:id="c9cf6f8b-2016-4bc8-a97a-ea628d4448aa" config-ref="Database_ConfigFile">
+			<db:sql><![CDATA[INSERT INTO account (account_name,account_id,account_price) VALUES (:account_name,:account_id,:account_price)]]></db:sql>
+		</db:bulk-insert>
+			<flow-ref doc:name="Flow Reference" doc:id="6e33e9d9-564c-4f86-87c1-e90999f61555" name="MYSQL" />
+		
+</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="1e283975-22b9-45fa-8456-ed1f0dddaea4" processor="os:store" atLeast="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="lastdate" attributeName="key" />
+				</munit-tools:with-attributes>
+
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="main-flow-test-suite-querySalesforceFlowTest" doc:id="d84ad6e3-2398-4f11-9ac0-38034419295f" description="Test">
+		<munit:execution>
+			<ee:transform doc:name="Transform Message" doc:id="4fd93d65-334e-4cb8-b8e2-e0cb40b9a323">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	Name: "Salesforce_Munit_test1",
+	AccountNumber: "2001",
+	AnnualRevenue: "50000",
+}]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			<salesforce:create type="Account" doc:name="Create" doc:id="07aca1b9-a9b0-4012-92a8-fef99e24e5c3" config-ref="Salesforce_ConfigFile" />
+			<flow-ref doc:name="Flow Reference" doc:id="ca61a9bc-9dcd-4f40-b598-1320aede92d4" name="Salesforce" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:verify-call doc:name="Verify call" doc:id="5de90aad-e4e8-4da0-bb84-1e6fa5c0fb5a" processor="os:store">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="lastdate1" attributeName="key" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+</mule>

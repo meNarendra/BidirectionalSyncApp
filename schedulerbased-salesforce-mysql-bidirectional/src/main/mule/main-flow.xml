@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	<os:object-store name="syncState" doc:name="Object store" doc:id="805c2e4d-5092-47c9-a5aa-7f67e26f72f7"/>
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="29c19027-656e-4dd3-8052-d80b5c81b6a1"/>
+	<configuration-properties doc:name="Configuration properties" doc:id="4dc96900-3f09-43c0-b0ce-e1749b29de5f" file="config.yaml" />
+	<salesforce:sfdc-config name="Salesforce_ConfigFile" doc:name="Salesforce Config" doc:id="d5c61061-1191-4cc8-b24d-85cdb382c906" >
+		<salesforce:basic-connection username="${sfdc.user}" password="${sfdc.password}" securityToken="${sfdc.securityToken}" />
+	</salesforce:sfdc-config>
+	<db:config name="Database_ConfigFile" doc:name="Database Config" doc:id="68b51cc2-a430-4cff-a620-e647a70f8782" >
+		<db:my-sql-connection host="${db.host}" port="${db.port}" user="${db.user}" password="${db.password}" database="${db.databaseName}" />
+	</db:config>
+	<flow name="main-flow" doc:id="c73b04c8-278a-4df6-8335-efce8336fb57" >
+		<scheduler doc:name="Scheduler" doc:id="ae54b9e0-f8b6-4635-945e-1d326cfd4385" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="10" timeUnit="SECONDS"/>
+			</scheduling-strategy>
+		</scheduler>
+		<os:retrieve doc:name="Retrieve" doc:id="dc17cfc7-3546-453c-9703-0f46cfebe49e" key="syncState" objectStore="syncState" target="syncState">
+			<os:default-value ><![CDATA[MYSQL-Salesforce]]></os:default-value>
+		</os:retrieve>
+		<logger level="INFO" doc:name="Logger" doc:id="0c85d6c7-8417-4cc7-a30f-2956d39a8b42" message="#[vars.syncState]"/>
+		<choice doc:name="Choice" doc:id="19396881-21ef-4ceb-ae22-543240d7133f" >
+			<when expression='#[vars.syncState == "MYSQL-Salesforce" or vars.syncState == null]'>
+				<logger level="INFO" doc:name="Logger" doc:id="7c867822-e43f-448d-9e58-b21cb9531b11" message="#[vars.syncState]"/>
+				<flow-ref doc:name="Flow Reference" doc:id="17748cd9-5ca0-476d-a221-57dff501c798" name="MYSQL"/>
+			</when>
+			<when expression='#[vars.syncState == "Salesforce-MYSQL"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="029fc770-296a-48e5-be34-2c228d544327" message="#[vars.syncState]"/>
+				<flow-ref doc:name="Flow Reference" doc:id="70202d47-0ee3-4dbe-a9ef-f589419a0e06" name="Salesforce"/>
+			</when>
+			<otherwise>
+				<raise-error doc:name="Raise error" doc:id="5610f056-1435-4728-b660-465e73e38ead" type="PROCESS:INVALIDPROCESS" description="None of the either process is called" />
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="MYSQL" doc:id="7f972fe4-a829-48d8-a43a-5c0fa1ae0afd" >
+		<os:retrieve doc:name="Retrieve" doc:id="b762371d-6a9d-4550-937b-dd1c200ef78a" key="lastdate" target="lastdate" objectStore="Object_store">
+			<os:default-value ><![CDATA[2020-12-10T19:50:58.000Z]]></os:default-value>
+		</os:retrieve>
+		<logger level="INFO" doc:name="Logger" doc:id="8ba50dc2-16d2-4df7-a1ce-2f3fcc24e517" message="#[vars.lastdate]"/>
+		<db:select doc:name="Select" doc:id="1b7afdb6-4615-415a-ab21-88dbfa511ca6" config-ref="Database_ConfigFile">
+			<db:sql ><![CDATA[select account_id,account_name,account_price,lastmodified from account WHERE lastmodified>:my]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	"my": vars.lastdate
+}]]]></db:input-parameters>
+		</db:select>
+		<os:store doc:name="Store" doc:id="5153b4f9-e84d-4cc8-bcf2-b9a4f27f7e30" key="lastdate" objectStore="Object_store" failOnNullValue="false">
+			<os:value ><![CDATA[#[max(payload map $.lastmodified)]]]></os:value>
+		</os:store>
+		<ee:transform doc:name="Transform Message" doc:id="aaf87106-5bd4-45ab-baaf-248f6bb53f19">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+payload map{
+	Name:$.account_name,
+	AccountNumber:$.account_id,
+	AnnualRevenue:$.account_price
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference" doc:id="9966750a-fa52-4672-915c-55ffbcd6e941" name="MYSQL-Salesforce" />
+	</flow>
+	<flow name="Salesforce" doc:id="69fb4167-ce2b-44e2-8e20-025befcf453b" >
+		<os:retrieve doc:name="Retrieve" doc:id="a821c1da-7255-4899-b2e9-912b2542c888" key="lastdate1" target="lastdate1" objectStore="Object_store">
+			<os:default-value ><![CDATA[2020-12-10T19:50:58.000Z]]></os:default-value>
+		</os:retrieve>
+		<logger level="INFO" doc:name="Logger" doc:id="b9f50638-0499-46b3-a883-1f4006997599" message="#[vars.lastdate1]"/>
+		<salesforce:query doc:id="dad87a55-d16e-4af7-b29c-6e1d81b13d50" config-ref="Salesforce_ConfigFile">
+			<salesforce:salesforce-query ><![CDATA[SELECT AccountNumber,AnnualRevenue,Name,LastModifiedDate FROM Account WHERE LastModifiedDate >:my]]></salesforce:salesforce-query>
+			<salesforce:parameters ><![CDATA[#[output application/java
+---
+{
+	my : vars.lastdate1
+}]]]></salesforce:parameters>
+		</salesforce:query>
+		<os:store doc:name="Store" doc:id="5435a6c2-18b4-404a-9f6d-d1a9101e3f4e" key="lastdate1" objectStore="Object_store" failOnNullValue="false">
+			<os:value ><![CDATA[#[max(payload map $.LastModifiedDate)]]]></os:value>
+		</os:store>
+		<ee:transform doc:name="Transform Message" doc:id="755d4dc5-ebab-490f-b56d-27dbfbebcc58" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map{
+	Name:$.Name,
+	AccountNumber:$.AccountNumber,
+	AnnualRevenue:$.AnnualRevenue,
+	LastModifiedDate:$.LastModifiedDate
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference" doc:id="ba8c8f41-bbdd-48f3-a090-eec8bec893ce" name="Salesforce-MYSQL"/>
+	</flow>
+</mule>
